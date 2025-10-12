@@ -19,8 +19,9 @@
 #include <vector>
 #include <cstdint>
 #include <iostream>
-#include <filesystem>
+#include <cassert>
 #include <functional>
+#include <filesystem>
 #include <string_view>
 #include <unordered_map>
 
@@ -47,17 +48,18 @@
 # endif
 #endif
 
-#define MAW_DefEmptyTypeInfoCode(T)                         \
+#define MAW_DefEmptyTypeInfoCode(T, F)                      \
   inline const maw::type_info &get_type() const override {  \
     static maw::type_info info {                            \
-      maw::m_type_name<T>(),                                \
+      m_type_name<T>(),                                     \
         [] { return std::make_shared<T>(); },               \
-        {}                                                  \
+        {},                                                 \
+        F                                                   \
       };                                                    \
     return info;                                            \
   }
 
-#define MAW_GetSourceString(T) std::string(maw::m_type_name(T)) + "." + std::string(__func__)
+#define MAW_GetSourceString(T) std::string(m_type_name(T)) + "." + std::string(__func__)
 #define MAW_GetSourceStringNotFunc(T) std::string(std::string(#T)) + "." + std::string(__func__)
 #define MAW_GetSrouceStringClass() MAW_GetSourceString(*this)
 #define MAW_RegisterMethod(CLASS, NAME, BODY)                                   \
@@ -74,6 +76,40 @@
 #define MAW_ReflectionPublicInterfaceName Maw_ReflectionEntry_0A
 #define MAW_ReflectionPublicInterfaceNameStr ("Maw_ReflectionEntry_0A")
 
+#ifdef MAW_USES_LANGUAGE_MACROS
+# define cla(N) class N : public maw::object
+# define let    auto
+# define fun(T) T
+# define pub    public:
+# define prv    private:
+# define pro    protected:
+# define ret    return 
+# define leave  return std::make_shared<null>()
+#endif
+
+template<typename T>
+constexpr std::string_view m_type_name() {
+#if defined(__clang__) || defined(__GNUC__)
+    constexpr std::string_view p = __PRETTY_FUNCTION__;
+    constexpr std::string_view key = "T = ";
+    auto start = p.find(key);
+    if (start == std::string_view::npos) return "unknown";
+    start += key.size();
+    auto end = p.find_first_of(";]", start);
+    return p.substr(start, end - start);
+#elif defined(_MSC_VER)
+    constexpr std::string_view p = __FUNCSIG__;
+    constexpr std::string_view key = "m_type_name<";
+    auto start = p.find(key);
+    if (start == std::string_view::npos) return "unknown";
+    start += key.size();
+    auto end = p.find_first_of(">", start);
+    return p.substr(start, end - start);
+#endif
+}
+
+template<typename T>
+constexpr std::string_view m_type_name(const T &) { return m_type_name<T>(); } 
 namespace maw {
   struct object;
   class invocable;
@@ -81,50 +117,29 @@ namespace maw {
   using object_argv = const std::vector<std::shared_ptr<object>> &;
   using shared_object = std::shared_ptr<object>;
 
-  template<typename T>
-  constexpr std::string_view m_type_name() {
-  #if defined(__clang__) || defined(__GNUC__)
-      constexpr std::string_view p = __PRETTY_FUNCTION__;
-      constexpr std::string_view key = "T = ";
-      auto start = p.find(key);
-      if (start == std::string_view::npos) return "unknown";
-      start += key.size();
-      auto end = p.find_first_of(";]", start);
-      return p.substr(start, end - start);
-  #elif defined(_MSC_VER)
-      constexpr std::string_view p = __FUNCSIG__;
-      constexpr std::string_view key = "m_type_name<";
-      auto start = p.find(key);
-      if (start == std::string_view::npos) return "unknown";
-      start += key.size();
-      auto end = p.find_first_of(">", start);
-      return p.substr(start, end - start);
-  #endif
-  }
-
-  template<typename T>
-  constexpr std::string_view m_type_name(const T &) { return m_type_name<T>(); } 
-
   struct type_info {
     std::string_view fullname;
     std::function<std::shared_ptr<object>()> activator;
     mutable std::unordered_map<std::string, std::shared_ptr<invocable>> methods;
+    const type_info *basetype;
 
-    inline type_info(std::string_view n, std::function<std::shared_ptr<object>()> a, const std::unordered_map<std::string, std::shared_ptr<invocable>> &m)
-      : fullname(n), activator(std::move(a)), methods(m) {}
+    inline type_info(std::string_view n, 
+      std::function<std::shared_ptr<object>()> a, 
+      const std::unordered_map<std::string, std::shared_ptr<invocable>> &m,
+      const type_info *base = nullptr)
+      : fullname(n), activator(std::move(a)), methods(m), basetype(base) {}
 
     bool operator==(const type_info &other) const { return fullname == other.fullname; }
   };
 
   struct object : std::enable_shared_from_this<object> {
-    inline virtual ~object() = default;
     inline virtual std::shared_ptr<object> activator() const {
       return std::make_shared<object>();
     }
 
     inline virtual const type_info &get_type() const {
       static type_info info {
-        m_type_name<object>(), 
+        m_type_name<object>(),
         [] { return std::make_shared<object>(); },
         {}
       };
@@ -137,7 +152,8 @@ namespace maw {
       static type_info info {
         m_type_name<null>(), 
         [] { return std::make_shared<null>(); },
-        {}
+        {},
+        &object().get_type()
       };
       return info;
     }
@@ -167,7 +183,8 @@ namespace maw {
       static type_info info{ 
         m_type_name<literal<T>>(), 
         [] { return std::make_shared<literal<T>>(); },
-        {}
+        {},
+        &object().get_type()
       };
       return info;
     }
@@ -207,7 +224,8 @@ namespace maw {
             if (argv.size() >= 1) return std::make_shared<object>(exception::msg(argv[0]));
             return std::make_shared<null>();
           })}
-        }
+        },
+        &object().get_type()
       };
       return info;
     }
@@ -218,7 +236,7 @@ namespace maw {
     inline bad_invocation() : exception("bad invocation") {}
     inline bad_invocation(const std::vector<std::string> &s) : exception("bad invocation", s) {}
 
-    MAW_DefEmptyTypeInfoCode(bad_invocation)
+    MAW_DefEmptyTypeInfoCode(bad_invocation, &exception().get_type())
   };
 
   class invocable : public object {
@@ -295,7 +313,8 @@ namespace maw {
               return std::make_shared<null>();
             })
           }
-        }
+        },
+        &exception().get_type()
       };
 
       return info;
@@ -307,7 +326,7 @@ namespace maw {
     inline invalid_type() : exception("invalid type") {}
     inline invalid_type(const std::vector<std::string> &argv) : exception("invalid type", argv) {}
 
-    MAW_DefEmptyTypeInfoCode(invalid_type)
+    MAW_DefEmptyTypeInfoCode(invalid_type, &exception().get_type())
   };
 
   template <typename T>
@@ -335,7 +354,8 @@ namespace maw {
       static type_info info{ 
         m_type_name<typed<T>>(), 
         [] { return std::make_shared<typed<T>>(); },
-        {}
+        {},
+        &literal<T>().get_type()
       };
       return info;
     }
@@ -362,7 +382,8 @@ namespace maw {
       static type_info info{ 
         m_type_name<optional_typed<T>>(),
         [] { return std::make_shared<optional_typed<T>>(); },
-        {}
+        {}, 
+        &literal<T>().get_type()
       };
       return info;
     }
@@ -423,12 +444,84 @@ namespace maw {
               } else throw bad_invocation({"argv: invalid type", MAW_GetSourceString(function())});
             })
           }
-        }
+        }, 
+        &invocable().get_type()
       };
       
       return info;
     }
   };
+
+  class lambda : public invocable {
+    using thunk_t = shared_object (*)(void*, object_argv);
+    void* self = nullptr;
+    thunk_t thunk = nullptr;
+    void (*deleter)(void*) = nullptr;
+
+  public:
+    lambda() = default;
+
+    template<typename F>
+    lambda(F &&func) {
+      using Fn = std::decay_t<F>;
+      self = new Fn(std::forward<F>(func));
+
+      thunk = [](void *ptr, object_argv argv) -> shared_object {
+        return (*static_cast<Fn*>(ptr))(argv);
+      };
+
+      deleter = [](void *ptr) {
+        delete static_cast<Fn*>(ptr);
+      };
+    }
+
+    lambda(const lambda&) = delete;
+    lambda &operator=(const lambda&) = delete;
+
+    lambda(lambda &&other) noexcept {
+      std::swap(self, other.self);
+      std::swap(thunk, other.thunk);
+      std::swap(deleter, other.deleter);
+    }
+
+    lambda &operator=(lambda &&other) noexcept {
+      if (this != &other) {
+        reset();
+        std::swap(self, other.self);
+        std::swap(thunk, other.thunk);
+        std::swap(deleter, other.deleter);
+      }
+      return *this;
+    }
+
+    ~lambda() { reset(); }
+
+    void reset() {
+      if (self && deleter) deleter(self);
+      self = nullptr;
+      thunk = nullptr;
+      deleter = nullptr;
+    }
+
+    shared_object invoke(object_argv argv) const override {
+      if (!thunk) throw std::runtime_error("lambda: null target");
+      return thunk(self, argv);
+    }
+
+    bool isvalid() const override { return thunk != nullptr; }
+
+    MAW_DefEmptyTypeInfoCode(lambda, &invocable().get_type())
+  };
+
+  template <typename T>
+  std::shared_ptr<object> wrap_object(const T &obj) {
+    return std::make_shared<T>(obj);
+  }
+
+  template <typename T>
+  std::shared_ptr<object> wrap_object(const std::shared_ptr<T> &obj) {
+    return (obj);
+  }
 
   namespace assembly {
     class assembly_exception : public exception {
@@ -440,7 +533,7 @@ namespace maw {
         return std::make_shared<assembly_exception>();
       }
 
-      MAW_DefEmptyTypeInfoCode(assembly_exception)
+      MAW_DefEmptyTypeInfoCode(assembly_exception, &exception().get_type())
     };
 
     class assembly_object : public object {
@@ -472,7 +565,7 @@ namespace maw {
       assembly_object(const type_map &map, const std::filesystem::path &p) 
         : types_(map), path_(p) {}
       
-      MAW_DefEmptyTypeInfoCode(assembly_object)
+      MAW_DefEmptyTypeInfoCode(assembly_object, &object().get_type())
     };
     
     class dynamic_assembly : public assembly_object {
@@ -585,11 +678,21 @@ namespace maw {
                 return std::make_shared<null>();
               })
             }
-          }
+          }, &assembly_object().get_type()
         };
         return info;
       }
     };
   } // namespace assembly
+
+#pragma region common_type_definition
+
+  typedef uint64_t    uinteger;
+  typedef int64_t     integer;
+  typedef bool        boolean;
+  typedef long double number;
+  typedef uint64_t    sizesc;
+
+#pragma endregion common_type_definition
 
 } // namespace maw
