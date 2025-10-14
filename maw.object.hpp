@@ -62,5 +62,8 @@ namespace maw {
       };
       return info;
     }
+
+    inline virtual std::string to_string() const { return std::string(get_type().fullname); }
+    inline virtual std::string_view to_string_view() const { return std::string_view(get_type().fullname); }
   };
 }

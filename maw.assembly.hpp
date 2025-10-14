@@ -11,6 +11,9 @@
 //  Enjoy coding <3
 //  Thank you !
 
+// Maw.System.Assembly;
+// Maw.System.Assembly.V1 is guanranteed to be the same regarding your version of Maw.System.
+
 #pragma once
 
 #include <any>
@@ -31,11 +34,12 @@
 #include "maw.null.hpp"
 #include "maw.literal.hpp"
 #include "maw.exception.hpp"
-#include "maw.typed.hpp"
 #include "maw.functionnal.hpp"
+#include "maw.typed.hpp"
+#include "maw.types.hpp"
 
 namespace maw {
-namespace assembly {
+namespace assembly::V1 {
     class assembly_exception : public exception {
     public: 
       inline assembly_exception() : exception("assembly exception") {}
@@ -195,5 +199,71 @@ namespace assembly {
         return info;
       }
     };
-  } // namespace assembly
+  } // namespace assembly V1
+
+#pragma region Assembly Types
+
+  namespace assembly::V1::assembly_types {
+
+    template <typename T>
+    class quick_view : public object {
+    private:
+      const T *start;
+      maw_types::mc_len size_;
+
+    public:
+      inline const T *begin() const { return start; }
+      inline maw_types::mc_len size() const { return size_; }
+
+      inline const type_info &get_type() const override {
+        static type_info info {
+          m_type_name<quick_view>(),
+          [] { return std::make_shared<quick_view>(); },
+          {},
+          &object().get_type()
+        };
+        return info;
+      }
+      
+      inline std::shared_ptr<object> activator() const override {
+        return std::make_shared<quick_view>();
+      }
+    };
+
+    template <>
+    class quick_view<std::string> : public object {
+    private:
+      const char *start;
+      maw_types::mc_len size_;
+
+    public:
+      inline const char *begin() const { return start; }
+      inline maw_types::mc_len size() const { return size_; }
+
+      inline const type_info &get_type() const override {
+        static type_info info {
+          m_type_name<quick_view>(),
+          [] { return std::make_shared<quick_view>(); },
+          {},
+          &object().get_type()
+        };
+        return info;
+      }
+      
+      inline std::shared_ptr<object> activator() const override {
+        return std::make_shared<quick_view>();
+      }
+    };
+  }
+
+#pragma endregion
+
+
+  #ifdef MAW_USES_SPEC_ASM_V
+  // Nothing for now!
+  #else
+  namespace assembly {
+    using namespace V1; // Import the V1
+  }
+  #endif
 }

@@ -36,30 +36,9 @@
 #include "maw.exception.hpp"
 #include "maw.typed.hpp"
 #include "maw.functionnal.hpp"
+#include "maw.assembly.hpp"
 
 namespace maw {
-  #pragma region Maw C++ Types
-
-  namespace maw_types {
-    using mc_integer   = int64_t;
-    using mc_uinteger  = uint64_t;
-    using mc_boolean   = int8_t;
-    using mc_number    = double; // May get changes in further versions.
-    using mc_byte      = uint8_t;
-
-    using integer   = typed<mc_integer>;
-    using uinteger  = typed<mc_uinteger>;
-    using boolean   = typed<mc_boolean>;
-    using number    = typed<mc_number>;
-    using byte      = typed<mc_byte>;
-  }
-
-  #ifdef MAW_USES_MC
-  using namespace maw_types;
-  #endif // MAW_USES_MC_TYPES_GLOB
-
-  #pragma endregion
-
   template <typename T>
   std::shared_ptr<T> cast_object(const std::shared_ptr<object> &ptr) {
     std::shared_ptr<T> self = std::dynamic_pointer_cast<T>(ptr);

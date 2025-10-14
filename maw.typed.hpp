@@ -93,4 +93,7 @@ namespace maw {
       return info;
     }
   };
+
+  template <typename T>
+  using typed_ptr = std::shared_ptr<typed<T>>;
 }
