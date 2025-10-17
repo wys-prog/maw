@@ -27,6 +27,7 @@
 #include <unordered_map>
 
 #define _MAW_BACKEND
+#define MAW_SYSTEM_CXX
 
 #include "_maw.hpp"
 #include "maw.reflection.hpp"
