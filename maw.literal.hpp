@@ -38,6 +38,14 @@ namespace maw {
     template <typename U, typename = std::enable_if_t<std::is_constructible_v<T, U&&>>>
     inline literal(U&& u) : self(T(std::forward<U>(u))) {}
     inline literal(const T &v) : self(v) {}
+    inline literal(const std::shared_ptr<object> &obj) {
+      auto v = std::dynamic_pointer_cast<literal<T>>(obj);
+      if (v) {
+        self = (*v).get();
+      } else {
+        // literal<T> can't throw when types mismatches.
+      }
+    }
 
     inline std::shared_ptr<object> activator() const override {
       return std::make_shared<literal<T>>();
