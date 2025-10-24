@@ -33,7 +33,8 @@ namespace maw {
     inline const type_info &get_type() const override {
       static type_info info {
         m_type_name<null>(), 
-        [] { return std::make_shared<null>(); },
+        [] (object_argv) { return std::make_shared<null>(); },
+        {},
         {},
         &object().get_type()
       };

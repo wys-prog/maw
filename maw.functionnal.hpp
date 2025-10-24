@@ -63,7 +63,7 @@ namespace maw {
     inline const type_info &get_type() const override {
       static type_info info {
         m_type_name<invocable>(),
-        [] { return std::make_shared<invocable>(); },
+        [] (object_argv) { return std::make_shared<invocable>(); },
         {
           {
             "isvalid", std::make_shared<invocable>([](auto argv) -> std::shared_ptr<object> {
@@ -110,6 +110,7 @@ namespace maw {
             })
           }
         },
+        {},
         &exception().get_type()
       };
 
@@ -144,7 +145,7 @@ namespace maw {
     inline const type_info &get_type() const override {
       static type_info info{ 
         m_type_name<function>(), 
-        [] { return std::make_shared<function>(); },
+        [] (object_argv) { return std::make_shared<function>(); },
         {
           {
             "invoke", std::make_shared<invocable>([](object_argv argv) -> shared_object {
@@ -166,6 +167,7 @@ namespace maw {
             })
           }
         }, 
+        {},
         &invocable().get_type()
       };
       

@@ -53,7 +53,8 @@ namespace maw::maw_types {
     inline const type_info &get_type() const override {
       static type_info info {
         m_type_name<interface>(),
-        [] { return std::make_shared<interface>(); },
+        [] (object_argv) { return std::make_shared<interface>(); },
+        {},
         {},
         &object().get_type()
       };
@@ -73,7 +74,8 @@ namespace maw::maw_types {
     inline const type_info &get_type() const override {
       static type_info info {
         m_type_name<informational_interface>(),
-        [] { return std::make_shared<informational_interface>(); },
+        [] (object_argv) { return std::make_shared<informational_interface>(); },
+        {},
         {},
         &object().get_type()
       };

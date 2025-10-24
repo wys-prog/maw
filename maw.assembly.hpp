@@ -166,7 +166,7 @@ namespace assembly::V1 {
       inline const type_info &get_type() const override {
         static type_info info{
           m_type_name<dynamic_assembly>(),
-          [] { return std::make_shared<dynamic_assembly>(); },
+          [] (object_argv) { return std::make_shared<dynamic_assembly>(); },
           {
             {
               "is_loaded", std::make_shared<invocable>([](object_argv argv) -> shared_object {
@@ -194,7 +194,9 @@ namespace assembly::V1 {
                 return std::make_shared<null>();
               })
             }
-          }, &assembly_object().get_type()
+          }, 
+          {},
+          &assembly_object().get_type()
         };
         return info;
       }
@@ -220,6 +222,7 @@ namespace assembly::V1 {
           m_type_name<quick_view>(),
           [] { return std::make_shared<quick_view>(); },
           {},
+          {},
           &object().get_type()
         };
         return info;
@@ -243,7 +246,8 @@ namespace assembly::V1 {
       inline const type_info &get_type() const override {
         static type_info info {
           m_type_name<quick_view>(),
-          [] { return std::make_shared<quick_view>(); },
+          [] (object_argv) { return std::make_shared<quick_view>(); },
+          {},
           {},
           &object().get_type()
         };

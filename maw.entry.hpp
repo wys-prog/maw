@@ -142,7 +142,7 @@ namespace maw::contexts {
     inline const type_info &get_type() const override {
       static type_info info{
         m_type_name<current_application>(),
-        [] { return std::make_shared<current_application>(); },
+        [] (object_argv) { return std::make_shared<current_application>(); },
         {
           { "exe_path", std::make_shared<invocable>([](object_argv argv) -> shared_object {
               auto self = std::dynamic_pointer_cast<current_application>(argv[0]);
@@ -182,6 +182,7 @@ namespace maw::contexts {
               return std::make_shared<literal<std::string>>(self->environment_variable(key->get()));
           }) }
         },
+        {},
         &maw::maw_types::informational_interface().get_type()
       };
       return info;

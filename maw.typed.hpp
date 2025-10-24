@@ -58,7 +58,8 @@ namespace maw {
     inline const type_info &get_type() const override {
       static type_info info{ 
         m_type_name<typed<T>>(), 
-        [] { return std::make_shared<typed<T>>(); },
+        [] (object_argv) { return std::make_shared<typed<T>>(); },
+        {},
         {},
         &literal<T>().get_type()
       };
@@ -86,8 +87,9 @@ namespace maw {
     inline const type_info &get_type() const override {
       static type_info info{ 
         m_type_name<optional_typed<T>>(),
-        [] { return std::make_shared<optional_typed<T>>(); },
+        [] (object_argv) { return std::make_shared<optional_typed<T>>(); },
         {}, 
+        {},
         &literal<T>().get_type()
       };
       return info;

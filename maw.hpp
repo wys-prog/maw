@@ -39,6 +39,19 @@
 #include "maw.functionnal.hpp"
 #include "maw.assembly.hpp"
 
+#define M_export(func, argc, mt, ...) \
+  { \
+  #func, std::make_shared<maw::invocable>([](maw::object_argv args) -> maw::shared_object { \
+    if ((args.size() + 1) < argc) throw maw::bad_invocation({"Too few arguments. Expected " + std::to_string(argc) + " got " + std::to_string(args.size()), "from " + std::string(mt().get_type().fullname) + "." + std::string(#func)}); \
+    if ((*args[0]).get_type() == mt().get_type()) { \
+      auto self = std::dynamic_pointer_cast<mt>(args[0]); \
+      return (*self).func(__VA_ARGS__);  \
+    } throw maw::bad_invocation({"Invalid self"}); \
+  }) }
+
+#define M_decl_class(cl, bs) private: using M_INNER = bs; using M_THIS = cl;
+
+
 namespace maw {
   template <typename T>
   std::shared_ptr<T> cast_object(const std::shared_ptr<object> &ptr) {
@@ -76,6 +89,37 @@ namespace maw {
 
     return std::make_shared<literal<std::vector<std::string>>>(v);
   }
+
+  template <typename C, typename B = object>
+  class enable : public object {
+  protected:
+    using self_t  = C;
+    using inner_t = B;
+
+    inline static const type_info &get_type_base(
+      const std::unordered_map<std::string, std::shared_ptr<invocable>> &methds = {},
+      const std::unordered_map<std::string, std::shared_ptr<object>> &mmbrs = {}
+    ) {
+      static type_info info{
+        m_type_name<self_t>(), 
+        [] (object_argv) { return std::make_shared<self_t>(); },
+        methds,
+        mmbrs,
+        &inner_t().get_type()
+      };
+      return info;
+    }
+
+    inline static void register_method(const std::string& name,
+                                       std::shared_ptr<invocable> fn) {
+      get_type_base().methods[name] = std::move(fn);
+    }
+
+    template <typename F>
+    inline static void register_method(const std::string& name, F&& fn) {
+      get_type_base().methods[name] = std::make_shared<invocable>(std::forward<F>(fn));
+    }
+  };
 } // namespace maw
 
 #undef _MAW_BACKEND

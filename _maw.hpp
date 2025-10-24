@@ -31,7 +31,8 @@
   inline const maw::type_info &get_type() const override {  \
     static maw::type_info info {                            \
       m_type_name<T>(),                                     \
-        [] { return std::make_shared<T>(); },               \
+        [] (object_argv) { return std::make_shared<T>(); }, \
+        {},                                                 \
         {},                                                 \
         F                                                   \
       };                                                    \

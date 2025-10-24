@@ -60,13 +60,14 @@ namespace maw {
     inline const type_info &get_type() const override {
       static type_info info{ 
         m_type_name<exception>(), 
-        [] { return std::make_shared<exception>(); },
+        [] (object_argv) { return std::make_shared<exception>(); },
         {
           {"msg", std::make_shared<invocable>([](object_argv argv) -> shared_object {
             if (argv.size() >= 1) return std::make_shared<object>(exception::msg(argv[0]));
             return std::make_shared<null>();
           })}
         },
+        {},
         &object().get_type()
       };
       return info;
