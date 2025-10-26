@@ -1,9 +1,9 @@
-//  Maw Reflection Core - by Wys (https://github.com/wys-prog)
+//  Maw Reflection Core - by MONOE. (https://github.com/wys-prog)
 //  Free and open-source software.
 //
 //  Usage Terms:
 //  - You are free to use, modify, and redistribute this code.
-//  - Please keep attribution in the source (at least mention "Wys").
+//  - Please keep attribution in the source (at least mention "MONOE.").
 //  - This code is provided "as is" without any warranty.
 //    By using it, you accept that any issues, bugs, or failures
 //    are entirely your own responsibility.
